@@ -1,0 +1,110 @@
+hadoop fs -put /home/pcuser/geodatainyear/yearwise/clickstream.csv /surya/clickstream.csv
+
+hadoop fs -put /home/pcuser/geodatainyear/yearwise/url.csv  /surya/url.csv
+--------------------------------------------------------------
+                          IN HIVE
+
+use surya_project;
+------------------------visitors--------------------------
+
+
+create table visitors(pages_url string,viewed bigint,average_size bigint,entry bigint,exit bigint)row format delimited fields terminated by ',' lines terminated by '\n' tblproperties ("skip.header.line.count"="1");
+
+
+load data inpath '/surya/url.csv' overwrite into table visitors;
+
+-----------------------clickstream------------------------
+
+
+create table clickstream(ID int,IP string,URL string,Time string, Size	bigint,Status string,Method string,Protocol string,Referring_URL string,User_Agent string)row format delimited fields terminated by ',' lines terminated by '\n' tblproperties ("skip.header.line.count"="1")
+
+
+load data inpath '/surya/url.csv' overwrite into table visitors;
+
+---------------------joining tables--------------------------
+
+
+select v.pages_url,v.viewed,c.Time from clickstream c join visitors v on v.pages_url=c.url;
+
+-----------------------counting urls-------------------------
+
+
+select count(url) from clickstream c join visitors v on v.pages_url=c.url;
+
+--------------------------
+Grouping the column IP in clickstream table-----------------
+
+
+
+select IP,count(IP) from clickstream group by IP ;
+
+--------------------queries----------------------------------
+
+
+IP address , which user's can visit more than 5 times -------------------------------------------------------------
+
+
+select IP,count(IP) from clickstream group by IP having count(IP)>=5;
+
+
+------------------------------PIG----------------------------
+
+
+
+click = load '/surya/clickstream.csv' using PigStorage(',') as (Ip,URL,Time,Size,Status,Method,Protocol,Referring_URL,User_Agent);
+Dump click;
+
+visit = load '/surya/url.csv' using PigStorage(',') as (pages_url,viewed,average_size,entry,exit);
+dump visit;
+
+--------------------------------------------------------------
+
+
+Grouping the table click by Ip column and display the data with limit upto 5.
+
+
+group_data = GROUP click by Ip;
+dump group_data;
+limit_group = limit group_data 5;
+dump limit_group;
+
+
+--------------------------------------------------------------Dispaly the top 3 url's present in our website
+
+
+
+join_data = join click by URL,visit by pages_url;
+dump join_data;
+lm = limit join_data 3;
+dump lm;
+
+
+---------------------------------------------------------------
+hive> select customer_id, customer_fname, customer_lname, product_name, order_item_subtotal from cust order by order_item_subtotal desc limit 5;
+
+ 
+
+hive> select product_id, product_name,  product_price from hnew order by product_price  desc limit 5;
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

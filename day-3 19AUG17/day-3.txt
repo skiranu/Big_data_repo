@@ -1,0 +1,26 @@
+create table htable(customer_id int,customer_fname  string,customer_lname string,customer_email string,customer_password  string,customer_street string,customer_city string, customer_state string, customer_zipcode string,category_id int,category_name string,order_id int,order_date string,order_status  string,order_item_id int,order_item_quantity int,order_item_product_price int,order_item_subtotal  float,department_id int,department_name string,product_id int,product_name string,product_description string,product_price float,product_image string) stored by  'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with serdeproperties ("hbase.columns.mapping" = ":key,c1:customer_fname,c1:customer_lname,c1:customer_email,c1:customer_password, c1:customer_street,c1:customer_city,c1:customer_state,c1:customer_zipcode,c1:category_id,c1:category_name,c1:order_id,c1:order_date,c1:order_status,c1:order_item_id,c1:order_item_quantity,c1:order_item_product_price,c1:order_item_subtotal,c1:department_id,c1:department_name,c1:product_id,c1:product_name,c1:product_description,c1:product_price,c1:product_image") TBLPROPERTIES ("hbase.table.name" = "htable_surya");
+
+          c1//column family name
+--------------------------------------------------------       
+
+insert overwrite table htable select * from hnew;
+--------------------------------------------------------
+
+hive>show tables;
+hive>select * from products;
+hive>update table products set product_price = 1000000 where product_id= 11345;
+hive>select * from products limit 3;
+
+hive>create table hproducts(product_id int,product_category_id int,product_name string,product_description string,product_price double,product_image string) stored by  'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with serdeproperties ("hbase.columns.mapping" = ":key,p1.product_category_id,p1.product_name,p1.product_description,p1.product_price,p1.product_image") TBLPROPERTIES ("hbase.table.name" = "htable_surya_products");
+hive>insert overwrite table hproducts select * from products;
+--------------------------------------------------------------
+                     
+                      DML OPERATIONS
+
+
+get 'htable_surya_products','999'//SELECT
+put 'htable_surya_products','007','p1:name','james bond'//INSERT
+get 'htable_surya_products','007'
+delete 'htable_surya_products','007','p1:name:jamescameron','1503136722161'//DELETE
+--------------------------------------------------------------- 
+

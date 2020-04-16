@@ -1,0 +1,77 @@
+//show tables in spark:
+ sqlContext.sql("show tables").toDF().show() 
+
+--------------------------------------------------------------
+creating table:  
+val department1 = spark.read.option("header","true").option("inferschema","true").csv("/surya/departments.csv") 
+
+printing the schema in tree format:
+department1.printSchema()  
+
+val customer1 = spark.read.option("inferSchema","true").option("option",true).option("quote","").csv("/surya/customer.csv")
+
+customer1.printSchema() 
+
+--------------------------------------------------------------
+%spark
+
+
+valtxtFile="file:///home/pcuser/surya/project/departments.csv"
+val txtData=sc.textFile(txtFile)
+txtData.cache()
+case class departments(department_id:Integer,department_name:String)
+val df= txtData.map {line =>
+val s= line.split(",")
+
+val id =s(0).toInt
+
+val name=s(1)
+
+departments(id,name) }.toDF()
+df.registerTempTable("departments")
+-------------------------------------------------------------
+%spark
+val txtFile2="file:///home/pcuser/surya/project/customer.csv"
+val txtData=sc.textFile(txtFile2)
+txtData.cache()
+case class customer100(customer_id:Integer,
+customer_fname:String,
+customer_lname:String,
+customer_email:String,
+customer_password:String,
+customer_street:String,
+customer_city:String,
+customer_state:String,
+customer_zipcode:String
+)
+val df= txtData.map {line =>
+val s= line.split(",")
+val customer_id=s(0).toInt
+val customer_fname=s(1)
+val customer_lname=s(2)
+val customer_email=s(3)
+val customer_password=s(4)
+val customer_street=s(5)
+val customer_city=s(6)
+val customer_state=s(7)
+val customer_zipcode=s(8)
+customer100(customer_id,customer_fname,customer_lname,customer_email,customer_password,customer_street,customer_city,customer_state,customer_zipcode) }.toDF()
+df.registerTempTable("customer100")
+
+--------------------------------------------------------------
+%spark
+val txtFile1="file:////home/pcuser/surya/project/products.csv"
+val txtData1=sc.textFile(txtFile1)
+txtData1.cache()
+case class products(p_id:Integer,p_cat_id:Integer,p_name:String,p_description:String,p_price:String,p_image:String)
+val df=txtData1.map {line =>
+val c = line.split(",")
+val id = c(0).toInt
+val c_id = c(1).toInt
+val p_name = c(2)
+val p_desc = c(3)
+val price = c(4)
+val img = c(5)
+products(id,c_id,p_name,p_desc,price,img) }.toDF()
+df.registerTempTable("products")
+---------------------------------------------------------------

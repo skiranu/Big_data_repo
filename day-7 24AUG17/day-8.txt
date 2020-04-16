@@ -1,0 +1,66 @@
+import org.apache.spark.SparkConf
+import org.apache.spark.streaming.{Seconds,StreamingContext}
+import org.apache.spark.storage.StorageLevel
+import StorageLevel._
+import org.apache.spark._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.StreamingContext._
+val ssc=new StreamingContext(sc,Seconds(1))
+val lines = ssc.socketTextStream("localhost",8590,MEMORY_ONLY)
+val wordsFlatMap = lines.flatMap(_.split(" "))
+val wordsMap = wordsFlatMap.map(w => (w,1))
+val wordCount  = wordsMap.reduceByKey((a,b) =>(a+b))
+wordCount.print
+//transforamations................
+ssc.start()//actionssssssssssssssss............
+
+nc -lk 8590
+//spark-inmemory cluster
+val logFile="/home/pcuser/surya.txt"
+val logData=sc.textFile(logFile)
+val numAs = logData.filter(line => line.contains("a")).count()
+
+//////////////////////////////////////////////////
+import org.apache.spark.streaming.StreamingContext
+import org.apache.spark.streaming.StreamingContext._
+import org.apache.spark.streaming.Seconds
+val ssc=new StreamingContext(sc,Seconds(1))
+import scala.collection.mutable.Queue
+import org.apache.spark.rdd.RDD
+
+val rddQueue = new Queue[RDD[Int]]()
+
+val inputStream=ssc.queueStream (rddQueue)
+val mappedStream = inputStream.map(x => (x%10,1))
+val reducedStream = mappedStream.reduceByKey( (x,y) => x+y)
+ssc.start()
+/////////////////////////////////////////////////////////////////////////////////////////////////
+import org.apache.spark._
+import org.apache.spark.streaming._
+import org.apache.spark.streaming.StreamingContext._
+val conf = new SparkConf().setMaster("local[2]").setAppName("NetworkWordCount")
+val ssc = new StreamingContext(conf, Seconds(10))
+val lines = ssc.socketTextStream("localhost", 9980)
+val words = lines.flatMap(_.split(" "))
+val pairs = words.map(word => (word, 1))
+val wordCounts = pairs.reduceByKey(_ + _)
+import org.apache.spark.streaming.StreamingContext._ 
+wordCounts.print()
+ssc.start() 
+
+nc -lk 9980
+
+try:=>sc.stop()  //if it dosnt work thern do the following:
+//////////////////////////////important///////////////////////////
+val sc1 = SparkContext.getOrCreate(conf)
+sc1.stop()
+/////////////////////////////////////////////////////////////////////////
+
+http://blog-wassim.azurewebsites.net/en/spark-for-beginners-tutorials-apache-spark-streaming-twitter-java-example/
+%spark
+create table hnew100 as (select c.customer_id,c.customer_fname,c.customer_lname,c.customer_email,c.customer_password,c.customer_street,c.customer_city,c.customer_state,c.customer_zipcode,o.o_date,o.o_id,o.o_status,oi.order_item_quantity,oi.order_item_id,oi.order_item_subtotal,oi.order_item_product_price,p.p_id,p.p_name,p.p_price,p.p_image,p.p_description,ca.category_id,ca.category_name,d.department_id,d.department_name from orders100 o, product100 p, order_item100 oi,customer100 c,department100 d,category100 ca where (o.order_id=oi.order_item_order_id) and (oi.order_item_product_id=p.p_id) and (c.customer_id=o.o_cat_id) and (p.p_cat_id=ca.category_id) and (ca.category_department_id=d.department_id))
+
+
+
+
+

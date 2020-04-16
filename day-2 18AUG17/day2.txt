@@ -1,0 +1,38 @@
+----------------creating table in hive using complex data types-------------------------------------------
+
+
+
+
+
+create table customers1(id int,name string,email_preferences struct<email_format:string,frequency:string,categories:struct<promos:boolean,surveys:boolean>>,
+addresses map<string,struct<street_1:string,street_2:string,city:string,state:string,zip_code:string>>,
+orders array<struct<order_id:string,order_date:string,items:array<struct<product_id:int,sku:string,name:string,price:double,qty:int>>>>);
+----------------------------joining tables--------
+mysql>create view j1 as select product_id,product_category_id,product_name,product_price,order_id,order_date from products inner join orders on products.product_id=orders.order_id;
+
+mysql>create view j22 as select customer_fname,customer_street,customer_state,customer_city,customer_zipcode,product_id,product_category_id,product_name,product_price,order_id,order_date from customers inner join j1 on customers.customer_id=j1.order_id;
+
+mysql>create view j333 as select order_items_quantity,cucustomer_street,customer_state,customer_city,customer_zipcode,product_id,product_category_id,product_name,product_price,order_id,order_date from order_items inner join j22 on order_items.order_item_id=j22.order_id;
+
+create temporary table custemp as select c.customer_id,c.customer_fname,c.customer_lname,c.customer_email,c.customer_password,c.customer_street,c.customer_city,c.customer_state,c.customer_zip,o.order_id,o.order_date,p.product_id,p.product_name,p.product_price,oi.order_item_quantity FROM 
+customers c JOIN orders o ON (c.customer_id=o.order_customer_id) JOIN order_items oi on (o.order_id=oi.order_item_order_id) JOIN product p on (oi.order_item_product_id=p.product_id);
+ 
+
+---------------------------hbase------------------------------
+get into hbase bin>>./hbase shell
+
+--------------creating mysql denormalized table----------
+
+create table hnew as (select c.customer_id,c.customer_fname,c.customer_lname,c.customer_email,c.customer_password,c.customer_street,c.customer_city,c.customer_state,c.customer_zipcode,o.order_date,o.order_id,o.order_status,oi.order_item_quantity,oi.order_item_id,oi.order_item_subtotal,oi.order_item_product_price,p.product_id,p.product_name,p.product_price,p.product_image,p.product_description,ca.category_id,ca.category_name,d.department_id,d.department_name from orders o, products p, order_items oi,customers c,departments d,category ca where (o.order_id=oi.order_item_order_id) and (oi.order_item_product_id=p.product_id) and (c.customer_id=o.order_customer_id) and (p.product_category_id=ca.category_id) and (ca.category_department_id=d.department_id);
+
+//Importing table “hnew” from mysql into hive:-
+Sqoop/bin$:- sqoop import –connect jdbc:mysql://localhost/surya_project –username root –password root –table hnew –hive-import –hive-table surya_project.hnew –m 1; 
+
+----------------------------------------------------------
+create table external hbas(customer_id int,customer_fname string,customer_email string,customer_password string,customer_street string,customer_city
+string, customer_state string, customer_zipcode string,category_id int,category_name string,order_id int,order_date string,order_status string,order_item_id int,order_item_quantity int,order_item_subtotal float,department_id int,department_name string,product_id int,product_name string,product_description string,product_price float,product_image string) stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with serdeproperties("hbase.columns.mapping" = ":key,col:customer_fname,col:customer_email,col:customer_password,col:customer_street,col:customer_city,col:customer_state,col:customer_zipcode,col:category_id,col:category_name,col:order_id,col:order_date,col:order_status,col:order_item_id,col:order_item_quantity,col:order_item_subtotal,col:department_id,col:department_name,col:product_id,col:product_name,col:product_description,col:product_price,col:product_image") STORED AS ORC
+LOCATION '/user/hive/orc/user' TBLPROPERTIES("orc.compress"="tb1");
+
+
+
+

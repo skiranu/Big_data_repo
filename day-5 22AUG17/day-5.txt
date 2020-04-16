@@ -1,0 +1,7 @@
+----------------------IN HIVE---------------------------------
+
+
+create table surya_project(URL string,Title string,Visited_On string,Visit_Count int,Typed_Count int,Referrer string,Visit_ID int,Profile string,URL_Length string,Transition_Type string,Transition_Qualifiers string) row format delimited fields terminated by ',' lines terminated by '\n' tblproperties ("skip.header.line.count"="1");
+
+
+load data local inpath '/home/pcuser/surya/surya_project.csv' into table surya_project;

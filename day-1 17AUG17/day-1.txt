@@ -1,0 +1,112 @@
+>mysql -u root -p  //u= username p=password.
+>show databases;   //lists the databases.
+>use surya_project;        //uses the userdefined database.
+----------------------------------------------------------
+
+>create table customers(customer_id int auto_increment not null primary key,customer_fname varchar(45) not null,customer_lname varchar(45) not null,customer_email varchar(45) not null,customer_password varchar(45) not null,customer_street varchar(45) not null,customer_city varchar(45) not null,customer_state varchar(45) not null,customer_zipcode varchar(45) not null);
+
+load data local infile '/home/pcuser/surya/project/customer.csv' into table surya_project.customers fields terminated by ',' lines terminated by '\n';
+----------------------------------------------------
+
+>create table category(category_id int(11) auto_increment not null primary key,category_department_id int(11),category_name varchar(45)); 
+>load data local infile '/home/pcuser/surya/project/categories.csv' into table surya_project.category fields terminated by ',' lines terminated by '\n';
+
+----------------------------------------------------
+>create table orders(order_id int(11) auto_increment not null primary key,order_date datetime not null,order_customer_id int(11) not null,order_status varchar(45) not null);
+
+
+>load data local infile '/home/pcuser/surya/project/orders.csv' into table surya_project.orders fields terminated by ',' lines terminated by '\n';
+----------------------------------------------------
+>create table order_items(order_item_id int(11) auto_increment not null primary key,order_item_order_id int(11) not null,order_item_product_id int(11) not null,order_item_quantity tinyint(4) not null,order_item_subtotal float not null,order_item_product_price float not null); 
+
+
+>load data local infile '/home/pcuser/surya/project/order_items.csv' into table surya_project.order_items fields terminated by ',' lines terminated by '\n';	
+>select * from order_items;
+-----------------------------------------------------
+>create table departments(department_id int(11) auto_increment not null primary key,department_name varchar(45) not null); 
+
+>load data local infile '/home/pcuser/surya/project/departments.csv' into table surya_project.departments fields terminated by ',' lines terminated by '\n';	
+-----------------------------------------------------
+>create table products(product_id int(11) auto_increment not null primary key,product_category_id int(11) not null,product_name varchar(45) not null,product_description varchar(255) not null,product_price float not null,product_image varchar(255) not null);
+
+>load data local infile '/home/pcuser/surya/project/products.csv' into table surya_project.products fields terminated by ',' lines terminated by '\n';	
+-------------------------------------------------------
+
+
+
+                         HIVE
+
+>hive
+>show databases;
+>use surya_project;
+//after importing tables from sqoop 
+>select * from customers;
+>select * from category;
+
+
+-------------------------------------------------------
+
+                       SQOOP
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table customers --hive-import --hive-table surya_project.customers -m 1;
+
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table category --hive-import --hive-table surya_project.category -m 1;
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table departments --hive-import --hive-table surya_project.departments -m 1;
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table order_items --hive-import --hive-table surya_project.order_items -m 1;
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table orders --hive-import --hive-table surya_project.orders -m 1;
+
+sqoop bin$>sqoop import --connect jdbc:mysql://localhost/surya_project --username root --password root --table products --hive-import --hive-table surya_project.products -m 1;
+
+
+-------------------BUCKETING----------------------------
+SET hive.exec.dynamic.partition=true;
+SET hive.exec.dynamic.partition.mode=non-strict;
+
+
+>SET hive.exec.dynamic.partition.mode = nonstrict;
+>create table add(customer_id int,customer_name string,customer_lname string,customer_fname string,customer_email string,customer_password string,customer_street string,customer_city string,customer_zipcode string) partitioned by (customer_state string); 
+
+>insert overwrite table add partition(customer_state='ca') select customer_id,customer_name,customer_lname,customer_fname,customer_email,customer_password,customer_street,customer_city,customer_zipcode from customers where customer_state = 'ca';
+
+
+--------------------------BUCKETING------------------------
+
+create table bucket_cus(customer_id int,customer_name string,customer_lname string,customer_fname string,customer_email string,customer_password string,customer_street string,customer_city string,customer_zipcode string) clustered by (customers_city) into 4 buckets;
+
+insert overwrite table bucket_cus select * from customer;
+
+
+create table customers1(id int,name string,email_preferences struct<email_format:string,frequency:string,categories:struct<promos:boolean,surveys:boolean>>4 addresses map<string,struct<street_1:string,street_2:string,city:string,state:string,zip_code:string>> 5 orders array<struct<order_id:string,order_date:string,items:array<struct<product_id:int,sku:string,name:string,price:double,qty:int>>>>);
+
+--------------bucketing-------------------------------------
+create table bucket_orders1(order_id int,order_date string, order_customer_id string,order_status string) row format delimited fields terminated by ',' stored as textfile; 
+
+load data local inpath '/home/pcuser/surya/project/orders.csv' into table bucket_orders1; 
+
+create table bucket_orders(order_id int,order_date string, order_customer_id string) partitioned by (order_status string) clustered by (order_customer_id) into 4 buckets;
+insert overwrite table bucket_orders partition(order_status) select * from bucket_orders1;
+hadoop fs -ls /user/hive/warehouse/surya_project.db/bucket_orders;
+hadoop fs -ls /user/hive/warehouse/surya_project.db/bucket_orders/order_status=completed;
+
+select * from bucket_orders TABLESAMPLE(BUCKET 1 OUT OF 4 ON order_status);
+
+select * from bucket_orders TABLESAMPLE(BUCKET 2 OUT OF 4 ON order_status);
+
+------------------------json---------------------------------
+ CREATE TABLE r1 (jdoc JSON);
+
+create table r1(id int,name string,email_preferences struct<email_format:string,frequency:string,categories:struct<promos:boolean,surveys:boolean>>4 addresses map<string,struct<street_1:string,street_2:string,city:string,state:string,zip_code:string>> 5 orders array<struct<order_id:string,order_date:string,items:array<struct<product_id:int,sku:string,name:string,price:double,qty:int>>>>);
+--------------------------------------------------------------
+SELECT customer_fname,customer_lname, customer_id,sum(product_price) as amount_purchased FROM hnew GROUP BY customer_fname,customer_lname, customer_id order by sum(product_price) desc limit 5; 
+
+
+
+	
+
+ 	
+
+
